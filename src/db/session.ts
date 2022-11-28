@@ -1,6 +1,8 @@
 import { redirect } from "solid-start/server";
 import { createCookieSessionStorage } from "solid-start/session";
-import { db } from ".";
+import { db, pepper } from ".";
+import bcrypt from "bcrypt";
+
 type LoginForm = {
   username: string;
   password: string;
@@ -14,9 +16,13 @@ export async function register({ username, password }: LoginForm) {
 
 export async function login({ username, password }: LoginForm) {
   const user = await db.user.findUnique({ where: { username } });
+  console.log(user);
   if (!user) return null;
-  const isCorrectPassword = password === user.password;
-  if (!isCorrectPassword) return null;
+  console.log(user);
+  let result = bcrypt.compareSync(password + pepper, user.digested_password);
+  console.log(result);
+  console.log(bcrypt.hashSync(password + pepper, 10));
+  if (!result) return null;
   return user;
 }
 
@@ -68,6 +74,7 @@ export async function getUser(request: Request) {
 
   try {
     const user = await db.user.findUnique({ where: { id: Number(userId) } });
+    console.log(user);
     return user;
   } catch {
     throw logout(request);
